@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://athaurian.github.io/forge/sitemap.xml
