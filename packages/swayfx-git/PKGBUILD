@@ -1,7 +1,7 @@
 # Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
 _pkgname=swayfx
 pkgname=$_pkgname-git
-pkgver=r7135.8775477
+pkgver=r7138.972e986
 pkgrel=1
 pkgdesc="Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)"
 arch=('x86_64')
