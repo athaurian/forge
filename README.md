@@ -36,7 +36,7 @@ To see everything that's published, run `pacman -Sl forge`.
 
 ## Packages
 
-There are nine packages, each under the `packages/` directory:
+There are ten packages, each under the `packages/` directory:
 
 | Package               | Description                                                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -47,6 +47,7 @@ There are nine packages, each under the `packages/` directory:
 | orchis-theme-square   | Orchis GTK theme built with fully square corners                                                                   |
 | swayfx-git            | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                          |
 | ttf-google-sans       | Google Sans variable and static fonts from the official OFL release                                                |
+| ttf-google-sans-code  | Google Sans Code variable fonts from the official OFL release                                                      |
 | wayfreeze-git         | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                      |
 | xdg-terminal-exec-git | Open the user's preferred terminal emulator from apps and scripts (git)                                            |
 
