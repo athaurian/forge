@@ -1,0 +1,16 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+pkgname=ttf-google-sans-code
+pkgver=7.001
+pkgrel=1
+pkgdesc="Google Sans Code variable fonts from the official OFL release"
+arch=('any')
+url="https://fonts.google.com/specimen/Google+Sans+Code"
+license=('OFL-1.1')
+source=("GoogleSansCode-v${pkgver}.zip::https://github.com/googlefonts/googlesans-code/releases/download/v${pkgver}/GoogleSansCode-v${pkgver}.zip")
+sha256sums=('eebba2a438882396e8530cad6d6cb80182b0afb6e9e0ad07b7340359a53ba2e9')
+
+package() {
+  install -d "$pkgdir/usr/share/fonts/GoogleSansCode" "$pkgdir/usr/share/licenses/$pkgname"
+  install -m644 "$srcdir/GoogleSansCode"*.ttf "$pkgdir/usr/share/fonts/GoogleSansCode/"
+  install -m644 "$srcdir/OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/"
+}
