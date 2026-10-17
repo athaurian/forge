@@ -1,0 +1,23 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+pkgname=ttf-google-sans
+pkgver=14.000
+pkgrel=1
+pkgdesc="Google Sans variable and static fonts from the official OFL release"
+arch=('any')
+url="https://fonts.google.com/specimen/Google+Sans"
+license=('OFL-1.1')
+source=(
+  "GoogleSans-v${pkgver}.zip::https://github.com/googlefonts/googlesans/releases/download/v${pkgver}/GoogleSans-v${pkgver}.zip"
+  "OFL.txt::https://raw.githubusercontent.com/google/fonts/fc0842ce25d003e57a2fc72cd4c4a6af6175a2cc/ofl/googlesans/OFL.txt"
+)
+sha256sums=(
+  'd338f0e74f5eabead86a85b87edf4cc50cd6561196dbe173d1db4139e95b3ca7'
+  '2b75ef20f13d83a7514aee452c4782c20cdc9ff2dee17600f44d37a06d4fb958'
+)
+
+package() {
+  install -d "$pkgdir/usr/share/fonts/GoogleSans" "$pkgdir/usr/share/licenses/$pkgname"
+  install -m644 "$srcdir/build/GoogleSans/static/GoogleSans-"*.ttf "$pkgdir/usr/share/fonts/GoogleSans/"
+  install -m644 "$srcdir/build/GoogleSans/variable/"*.ttf "$pkgdir/usr/share/fonts/GoogleSans/"
+  install -m644 "$srcdir/OFL.txt" "$pkgdir/usr/share/licenses/$pkgname/"
+}
