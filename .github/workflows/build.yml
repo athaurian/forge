@@ -67,7 +67,7 @@ jobs:
     if: needs.discover.outputs.has_packages == 'true'
     runs-on: ubuntu-latest
     container:
-      image: archlinux:base-devel@sha256:51dd3d24f7fba779e7c471caeee7804c50e8c134ad948e19685a1c83a42facc3
+      image: archlinux:base-devel@sha256:061679925e5d5028f2df9395d441ce6c4b9accf0157ff3486c06b6962e014ef1
       options: --user root
     permissions:
       contents: read
@@ -187,7 +187,7 @@ jobs:
     if: ${{ always() && !cancelled() && needs.build.result != 'failure' && (needs.discover.outputs.has_packages == 'true' || needs.discover.outputs.has_removals == 'true') }}
     runs-on: ubuntu-latest
     container:
-      image: archlinux:base@sha256:b21322c663be387c0ed9cbc7bbbfe18e41633ad4e7b7c77cfad45f128be20040
+      image: archlinux:base@sha256:3c64b538588416593f69a1aebd2f2ec0f2541b29159f32556fa7def2167147a0
     permissions:
       contents: read
     steps:
