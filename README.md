@@ -60,7 +60,8 @@ To skip a package temporarily, create an empty `packages/NAME/HOLD` file. The pa
 ## Build pipeline
 
 - Every push to `main` rebuilds the packages it changed.
-- A push that touches only documentation or tooling files builds nothing.
+- A push that touches only documentation or project tooling builds nothing.
+- A push that changes anything under `.github/` rebuilds every package, except for reworded comments.
 - A scheduled run at 04:37 UTC rebuilds every package.
 - A manual dispatch from the Actions tab rebuilds every package.
 - Git packages recompute `pkgver()` during the build, and versions advance only when upstream has actually moved.
