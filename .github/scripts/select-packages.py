@@ -21,9 +21,54 @@ from typing import NoReturn
 
 DOC_PATHS = {".editorconfig", ".gitignore", ".prettierrc", "LICENSE", "Makefile"}
 
+INERT_GITHUB_PATHS = {".github/dependabot.yml"}
+
 
 def notice(title: str, message: str) -> None:
     print(f"::notice title={title}::{message}")
+
+
+def blob_at(ref: str, path: str) -> str | None:
+    """Returns None for a path that is new at sha or gone from before."""
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout if result.returncode == 0 else None
+
+
+def without_comments(text: str) -> str:
+    """Cuts comments and blank lines so rewording either compares equal.
+
+    A `#` opens a comment at the start of a line, or after spaces on a line
+    without quotes, where no quote can hide it. Lines carrying a quote stay
+    verbatim, so a change such a line hides still counts as real.
+    """
+    kept: list[str] = []
+    for line in text.splitlines():
+        if line.lstrip().startswith("#") or not line.strip():
+            continue
+        if '"' not in line and "'" not in line:
+            cut = line.find(" #")
+            if cut != -1:
+                line = line[:cut]
+        kept.append(line)
+    return "\n".join(kept)
+
+
+def build_affecting(github_paths: list[str], before: str, sha: str) -> list[str]:
+    """Returns the paths whose meaning changed, not just their comments."""
+    real: list[str] = []
+    for path in github_paths:
+        if path.endswith(".md") or path in INERT_GITHUB_PATHS:
+            continue
+        old = blob_at(before, path)
+        new = blob_at(sha, path)
+        if old is None or new is None or without_comments(old) != without_comments(new):
+            real.append(path)
+    return real
 
 
 def fail(message: str) -> NoReturn:
@@ -68,11 +113,14 @@ def classify(event: str, before: str, sha: str) -> tuple[bool, set[str]]:
     full = False
     changed: set[str] = set()
     reasons: list[str] = []
+    github_paths: list[str] = []
     for line in diff.splitlines():
         for path in line.split("\t")[1:]:
             if path.startswith("packages/"):
                 changed.add(path.split("/")[1])
-            elif path.startswith(".github/") or path == "signing_key.asc":
+            elif path.startswith(".github/"):
+                github_paths.append(path)
+            elif path == "signing_key.asc":
                 full = True
                 reasons.append(path)
             elif path.endswith(".md") or path in DOC_PATHS:
@@ -80,6 +128,13 @@ def classify(event: str, before: str, sha: str) -> tuple[bool, set[str]]:
             else:
                 full = True
                 reasons.append(path)
+    real_ci = build_affecting(github_paths, before, sha)
+    if len(real_ci) < len(github_paths):
+        inert = sorted(set(github_paths) - set(real_ci))
+        notice("No build change in CI", ", ".join(inert))
+    if real_ci:
+        full = True
+        reasons.extend(real_ci)
     if full:
         unique = list(dict.fromkeys(reasons))
         shown = ", ".join(unique[:5])
