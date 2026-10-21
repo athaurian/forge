@@ -1,4 +1,9 @@
-# Forge
+<div align="center">
+  <img src="docs/favicon.svg" alt="forge monogram" width="128" />
+
+# forge
+
+</div>
 
 Hi. This is my custom Arch Linux package repository.
 
@@ -55,34 +60,23 @@ There are ten packages, each under the `packages/` directory:
 
 Run `make check` before committing. The check needs `shfmt`, Node, Python, and `uv` on your machine.
 
-To skip a package temporarily, create an empty `packages/NAME/HOLD` file. The package stays out of the next build and leaves the repository on the next publish.
+| Action                     | Details                                                                                            |
+| -------------------------- | -------------------------------------------------------------------------------------------------- |
+| Skip a package temporarily | Create empty `packages/NAME/HOLD`; package stays out of next build and leaves repo on next publish |
 
 ## Build pipeline
 
-- Every push to `main` rebuilds the packages it changed.
-- A push that touches only documentation or project tooling builds nothing.
-- A push that changes anything under `.github/` rebuilds every package, except for reworded comments.
-- A scheduled run at 04:37 UTC rebuilds every package.
-- A manual dispatch from the Actions tab rebuilds every package.
-- Git packages recompute `pkgver()` during the build, and versions advance only when upstream has actually moved.
-- Every package builds in its own job.
-- Packages that are not rebuilt keep their published copy.
-- Nothing publishes unless every job succeeds.
-
-Here's what it looks like visually:
-
-```mermaid
-%%{init: {"themeVariables": {"fontSize": "12px"}}}%%
-flowchart TD
-    trigger["push to main, daily at 04:37 UTC, or manual dispatch from main"] --> discover["`**discover**
-picks what to rebuild and skips HOLD files`"]
-    discover --> build["`**build**
-runs makepkg with an edited makepkg.conf for each package`"]
-    build --> repo["`**repo**
-runs repo-add --sign over new and fetched packages`"]
-    repo --> deploy["`**deploy**
-publishes forge.db, packages, and signing_key.asc to GitHub Pages`"]
-```
+| Trigger / Rule                     | Behavior                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| Push to `main`                     | Rebuilds only changed packages                                            |
+| Push touching only docs or tooling | Builds nothing                                                            |
+| Push changing `.github/`           | Rebuilds every package (except comment-only)                              |
+| Scheduled run (04:37 UTC)          | Rebuilds every package                                                    |
+| Manual dispatch from Actions       | Rebuilds every package                                                    |
+| Git packages (`-git` suffix)       | `pkgver()` recomputed at build; versions advance only when upstream moved |
+| Per-package isolation              | Each package builds in its own job                                        |
+| Unrebuilt packages                 | Keep their published copy                                                 |
+| Publish gate                       | Nothing publishes unless every job succeeds                               |
 
 ---
 
