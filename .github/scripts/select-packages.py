@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Chooses what this run rebuilds and stages published copies of the rest.
+"""Package selection and published-copy staging for a build run.
 
 Results go to GITHUB_OUTPUT, and staging/pkg.tar carries the published
 copies of packages that are not rebuilt when the repo job will run.
@@ -29,7 +29,7 @@ def notice(title: str, message: str) -> None:
 
 
 def blob_at(ref: str, path: str) -> str | None:
-    """Returns None for a path that is new at sha or gone from before."""
+    """Return the blob at a ref, or None when the path is absent there."""
     result = subprocess.run(
         ["git", "show", f"{ref}:{path}"],
         capture_output=True,
@@ -40,7 +40,7 @@ def blob_at(ref: str, path: str) -> str | None:
 
 
 def without_comments(text: str) -> str:
-    """Cuts comments and blank lines so rewording either compares equal.
+    """Cut comments and blank lines so rewording either compares equal.
 
     A `#` opens a comment at the start of a line, or after spaces on a line
     without quotes, where no quote can hide it. Lines carrying a quote stay
@@ -59,7 +59,7 @@ def without_comments(text: str) -> str:
 
 
 def build_affecting(github_paths: list[str], before: str, sha: str) -> list[str]:
-    """Returns the paths whose meaning changed, not just their comments."""
+    """Return the paths whose meaning changed, not just their comments."""
     real: list[str] = []
     for path in github_paths:
         if path.endswith(".md") or path in INERT_GITHUB_PATHS:
@@ -77,7 +77,7 @@ def fail(message: str) -> NoReturn:
 
 
 def list_packages() -> tuple[list[str], set[str]]:
-    """Returns the packages to build and every name present under packages/."""
+    """Return the packages to build and every name under packages/."""
     target: list[str] = []
     present: set[str] = set()
     for pkgdir in sorted(Path("packages").iterdir()):
@@ -92,7 +92,7 @@ def list_packages() -> tuple[list[str], set[str]]:
 
 
 def classify(event: str, before: str, sha: str) -> tuple[bool, set[str]]:
-    """Returns whether the run rebuilds everything and the changed package names."""
+    """Return whether the run rebuilds everything and the changed package names."""
     if event != "push":
         print(f"A {event} event arrives without a push diff")
         return True, set()
@@ -155,7 +155,7 @@ def parse_desc(text: str) -> dict[str, str]:
 
 
 def fetch_database(pages_base: str, repo_name: str) -> dict[str, str] | None:
-    """Returns published names mapped to filenames, or None when unreadable."""
+    """Return published names mapped to filenames, or None when unreadable."""
     url = f"{pages_base}/{repo_name}.db"
     try:
         with urllib.request.urlopen(url, timeout=30) as response:
@@ -180,7 +180,7 @@ def fetch_database(pages_base: str, repo_name: str) -> dict[str, str] | None:
 
 
 def fetch_marker(pages_base: str) -> str:
-    """Returns the commit the site was last published from, or an empty string."""
+    """Return the commit the site was last published from, or an empty string."""
     try:
         with urllib.request.urlopen(
             f"{pages_base}/last-build.sha", timeout=30

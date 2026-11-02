@@ -6,6 +6,8 @@ pacman-key --populate archlinux
 .github/scripts/retry.sh pacman -Syu --noconfirm --noprogressbar
 .github/scripts/retry.sh pacman -S --noconfirm --needed --noprogressbar git mold pacman-contrib
 
+# Build for x86-64-v3 with LTO and mold, and raise the zstd compression
+# level so published packages stay small.
 sed -i 's/-march=x86-64 -mtune=generic/-march=x86-64-v3/g' /etc/makepkg.conf
 sed -i '/^OPTIONS=/s/!lto/lto/' /etc/makepkg.conf
 sed -i '/^OPTIONS=/s/ debug / !debug /' /etc/makepkg.conf
@@ -23,9 +25,8 @@ EOF
 
 sed -i 's/COMPRESSZST=(zstd -c -T0 -)/COMPRESSZST=(zstd -c -T0 -q -19 -)/' /etc/makepkg.conf
 
-# Every mutation above has to have applied. A silent no-op here
-# publishes packages with the wrong build options, which already
-# happened when the compression sed stopped matching Arch's line.
+# Every mutation above has to apply. A silent no-op publishes packages with
+# the wrong build options.
 assert() {
   grep -qE -- "$1" /etc/makepkg.conf || {
     echo "::error::makepkg.conf: expected but missing: $1"
