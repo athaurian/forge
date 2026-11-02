@@ -7,16 +7,20 @@
 
 Hi. This is my custom Arch Linux package repository.
 
-The packages are built, signed with _GNU Privacy Guard (GPG)_, and published automatically. They're hosted on GitHub Pages. If you run Arch Linux, you can install these packages with `pacman`.
+The packages are built, signed with _GNU Privacy Guard (GPG)_, and published
+automatically. They're hosted on GitHub Pages. If you run Arch Linux, you can
+install these packages with `pacman`.
 
 > [!CAUTION]
-> Packages that compile to native machine code target `x86-64-v3` and need a compatible CPU. Prebuilt binaries, Python packages, scripts, and themes run on any `x86_64` machine.
+> Packages that compile to native machine code target `x86-64-v3` and need a
+> compatible CPU. Prebuilt binaries, Python packages, scripts, and themes run
+> on any `x86_64` machine.
 
 ## Setup
 
 1. Import and trust the signing key:
 
-   ```bash
+   ```sh
    curl -fsSL https://athaurian.github.io/forge/signing_key.asc -o /tmp/forge-signing-key.asc
    sudo pacman-key --add /tmp/forge-signing-key.asc
    sudo pacman-key --lsign-key 6E299CB692113F71A3ABC006EAC1C444324DD6C6
@@ -32,7 +36,7 @@ The packages are built, signed with _GNU Privacy Guard (GPG)_, and published aut
 
 3. Sync and install:
 
-   ```bash
+   ```sh
    sudo pacman -Sy
    sudo pacman -S PACKAGE_NAME
    ```
@@ -58,25 +62,23 @@ There are ten packages, each under the `packages/` directory:
 
 ## Development
 
-Run `make check` before committing. The check needs `shfmt`, Node, Python, and `uv` on your machine.
+Run `make check` before committing. The check needs `shfmt`, Node, Python, and
+`uv` on your machine.
 
-| Action                     | Details                                                                                            |
-| -------------------------- | -------------------------------------------------------------------------------------------------- |
-| Skip a package temporarily | Create empty `packages/NAME/HOLD`; package stays out of next build and leaves repo on next publish |
+To skip a package temporarily, create an empty `packages/NAME/HOLD`. The
+package stays out of the next build and returns to the repository on the next
+publish.
 
 ## Build pipeline
 
-| Trigger / Rule                     | Behavior                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| Push to `main`                     | Rebuilds only changed packages                                            |
-| Push touching only docs or tooling | Builds nothing                                                            |
-| Push changing `.github/`           | Rebuilds every package (except comment-only)                              |
-| Scheduled run (04:37 UTC)          | Rebuilds every package                                                    |
-| Manual dispatch from Actions       | Rebuilds every package                                                    |
-| Git packages (`-git` suffix)       | `pkgver()` recomputed at build; versions advance only when upstream moved |
-| Per-package isolation              | Each package builds in its own job                                        |
-| Unrebuilt packages                 | Keep their published copy                                                 |
-| Publish gate                       | Nothing publishes unless every job succeeds                               |
+A push to `main` rebuilds only the packages that changed. The scheduled run at
+04:37 UTC and a manual dispatch rebuild every package. Git packages recompute
+`pkgver` at build time, so their versions advance only when upstream moves.
+Nothing publishes unless every job succeeds.
+
+## License
+
+Released under the MIT license. See [LICENSE](LICENSE) for the full text.
 
 ---
 
