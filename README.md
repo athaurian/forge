@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/favicon.svg" alt="forge monogram" width="128" />
+<img src="docs/favicon.svg" alt="forge monogram" width="128">
 
 # forge
 
