@@ -1,7 +1,7 @@
 # Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
 _pkgname=exercism
 pkgname=$_pkgname-bin
-pkgver=3.5.8
+pkgver=3.5.9
 pkgrel=1
 pkgdesc="Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)"
 arch=('x86_64')
@@ -10,7 +10,7 @@ license=('MIT')
 provides=("$_pkgname=$pkgver")
 conflicts=("$_pkgname")
 source=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-linux-x86_64.tar.gz")
-sha256sums=('4ce6a3e5e41e4c51606f8cb94ef6b46e8f45144ef8c613c1ea4b8b69209e02ad')
+sha256sums=('c1e1f71451e34575afe9c83d0b9a4a0d1497b0f57f2016679bed3773f89f867d')
 
 build() {
   cd "$srcdir"
