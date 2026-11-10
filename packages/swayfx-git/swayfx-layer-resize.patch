@@ -1,0 +1,39 @@
+diff --git a/include/sway/layers.h b/include/sway/layers.h
+index b8457490..116cc0e6 100644
+--- a/include/sway/layers.h
++++ b/include/sway/layers.h
+@@ -14,6 +14,8 @@ struct sway_layer_surface {
+ 	struct wl_listener new_popup;
+ 
+ 	bool mapped;
++	int arranged_width;
++	int arranged_height;
+ 
+ 	struct wlr_scene_tree *popups;
+ 	struct sway_popup_desc desc;
+diff --git a/sway/desktop/layer_shell.c b/sway/desktop/layer_shell.c
+index 3cd6dddf..fe3ca5bc 100644
+--- a/sway/desktop/layer_shell.c
++++ b/sway/desktop/layer_shell.c
+@@ -102,6 +102,9 @@ static void arrange_surface(struct sway_output *output, const struct wlr_box *fu
+ 		wlr_scene_blur_set_size(surface->blur_node, surface->layer_surface->surface->current.width,
+ 			surface->layer_surface->surface->current.height);
+ 
++		surface->arranged_width = surface->layer_surface->surface->current.width;
++		surface->arranged_height = surface->layer_surface->surface->current.height;
++
+ 		wlr_scene_node_set_enabled(&surface->shadow_node->node, surface->shadow_enabled);
+ 
+ 		if (surface->shadow_enabled) {
+@@ -357,7 +360,10 @@ static void handle_surface_commit(struct wl_listener *listener, void *data) {
+ 		wlr_scene_node_reparent(&surface->scene->tree->node, output_layer);
+ 	}
+ 
+-	if (layer_surface->initial_commit || committed || layer_surface->surface->mapped != surface->mapped) {
++	bool size_changed = layer_surface->surface->current.width != surface->arranged_width ||
++		layer_surface->surface->current.height != surface->arranged_height;
++	if (layer_surface->initial_commit || committed || size_changed ||
++			layer_surface->surface->mapped != surface->mapped) {
+ 		surface->mapped = layer_surface->surface->mapped;
+ 		arrange_layers(surface->output);
+ 		transaction_commit_dirty();
