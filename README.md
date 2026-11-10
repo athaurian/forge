@@ -60,6 +60,19 @@ There are ten packages, each under the `packages/` directory:
 | wayfreeze-git         | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                      |
 | xdg-terminal-exec-git | Open the user's preferred terminal emulator from apps and scripts (git)                                            |
 
+## Patches
+
+Some packages need a change that upstream has not released yet. I keep that
+change as a patch file next to the `PKGBUILD` and apply it in `prepare()`. This
+way I do not have to fork the whole repository or wait for a pull request.
+
+| Package    | Patch                            | Effect                                                                                  |
+| ---------- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| swayfx-git | `libinput-scroll-circular.patch` | Report `circular` as the libinput scroll method in the IPC JSON                         |
+| swayfx-git | `swayfx-layer-resize.patch`      | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
+
+Delete a patch when upstream includes the same change.
+
 ## Development
 
 Run `make check` before committing. The check needs `shfmt`, Node, Python, and
