@@ -1,0 +1,22 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+pkgname=otf-geist-mono-nerd-trimmed
+pkgver=3.5.1
+pkgrel=1
+pkgdesc="Geist Mono Nerd Font Mono, trimmed to the four styles the desktop uses"
+arch=('any')
+url="https://github.com/ryanoasis/nerd-fonts"
+license=('OFL-1.1-no-RFN')
+provides=('otf-geist-mono-nerd' 'ttf-font-nerd')
+conflicts=('otf-geist-mono-nerd')
+options=(!strip)
+source=("$pkgname-$pkgver.zip::https://github.com/ryanoasis/nerd-fonts/releases/download/v$pkgver/GeistMono.zip")
+sha256sums=('4799a6c340f3993cea7f59c256c723afb3e70233471ea9042d92f153b87ef83e')
+
+package() {
+  install -d "$pkgdir/usr/share/fonts/OTF"
+  for style in Regular Bold Italic BoldItalic; do
+    install -m644 "$srcdir/GeistMonoNerdFontMono-$style.otf" \
+      "$pkgdir/usr/share/fonts/OTF/"
+  done
+  install -Dm644 "$srcdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
