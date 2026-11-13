@@ -66,10 +66,11 @@ Some packages need a change that upstream has not released yet. I keep that
 change as a patch file next to the `PKGBUILD` and apply it in `prepare()`. This
 way I do not have to fork the whole repository or wait for a pull request.
 
-| Package    | Patch                            | Effect                                                                                  |
-| ---------- | -------------------------------- | --------------------------------------------------------------------------------------- |
-| swayfx-git | `libinput-scroll-circular.patch` | Report `circular` as the libinput scroll method in the IPC JSON                         |
-| swayfx-git | `swayfx-layer-resize.patch`      | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
+| Package    | Patch                               | Effect                                                                                  |
+| ---------- | ----------------------------------- | --------------------------------------------------------------------------------------- |
+| swayfx-git | `libinput-scroll-circular.patch`    | Report `circular` as the libinput scroll method in the IPC JSON                         |
+| swayfx-git | `swayfx-layer-resize.patch`         | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
+| swayfx-git | `swayfx-swaybg-no-background.patch` | Do not start `swaybg` when no output has a background configured                        |
 
 Delete a patch when upstream includes the same change.
 
