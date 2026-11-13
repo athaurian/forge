@@ -2,7 +2,7 @@
 _pkgname=swayfx
 pkgname=$_pkgname-git
 pkgver=r7159.8bba119
-pkgrel=2
+pkgrel=3
 pkgdesc="Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)"
 arch=('x86_64')
 url="https://github.com/wlrfx/swayfx"
@@ -41,11 +41,13 @@ source=(
   "scenefx::git+https://github.com/wlrfx/scenefx.git#commit=3606f3d3bb4bb97e13228adc5190bf57fc687c88"
   "libinput-scroll-circular.patch"
   "swayfx-layer-resize.patch"
+  "swayfx-swaybg-no-background.patch"
 )
 sha256sums=('SKIP'
   'SKIP'
   'cd862d1689645cb9ed54b58ff7d79b3444a33ddb057ac1b964da0568784df7e1'
-  '45e86fc889ea9c0da36e0b8b2e6ef218125c4ec92aed16b2c3d4f9fc6af64b9d')
+  '45e86fc889ea9c0da36e0b8b2e6ef218125c4ec92aed16b2c3d4f9fc6af64b9d'
+  '61a668b69d0a1cbe7126bbe7505a91348eb1288bf86c397978c60983be8fb3ae')
 
 pkgver() {
   cd "$srcdir/$_pkgname"
@@ -55,10 +57,15 @@ pkgver() {
 # A resize commit sets no layer state bit, so SwayFX kept a layer shadow at
 # the previous surface size until an unrelated event rearranged the layers.
 # https://github.com/wlrfx/swayfx/issues/303
+#
+# Sway starts swaybg on every config load. When no output has a background,
+# the process has nothing to display, so do not start it. Configured
+# backgrounds still start swaybg as before.
 prepare() {
   cd "$srcdir/$_pkgname"
   patch -Np1 -i "$srcdir/libinput-scroll-circular.patch"
   patch -Np1 -i "$srcdir/swayfx-layer-resize.patch"
+  patch -Np1 -i "$srcdir/swayfx-swaybg-no-background.patch"
 }
 
 build() {

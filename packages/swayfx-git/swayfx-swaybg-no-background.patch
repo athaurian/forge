@@ -1,0 +1,20 @@
+diff --git i/sway/config/output.c w/sway/config/output.c
+index c915a17..e4818d5 100644
+--- i/sway/config/output.c
++++ w/sway/config/output.c
+@@ -1256,6 +1256,15 @@ bool spawn_swaybg(void) {
+ 		}
+ 	}
+ 
++	if (length == 2) {
++		/* No output has a background, so a bare swaybg would have nothing to
++		 * display. Destroy any previous instance and skip the spawn. */
++		if (config->swaybg_client != NULL) {
++			wl_client_destroy(config->swaybg_client);
++		}
++		return true;
++	}
++
+ 	char **cmd = calloc(length, sizeof(char *));
+ 	if (!cmd) {
+ 		sway_log(SWAY_ERROR, "Failed to allocate spawn_swaybg command");
