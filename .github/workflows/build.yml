@@ -232,6 +232,8 @@ jobs:
 
   deploy:
     needs: repo
+    # A removal-only run skips the build job, so do not inherit its status.
+    if: ${{ !cancelled() && needs.repo.result == 'success' }}
     permissions:
       pages: write
       id-token: write
