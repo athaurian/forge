@@ -76,6 +76,29 @@ def fail(message: str) -> NoReturn:
     sys.exit(1)
 
 
+def has_commit(ref: str) -> bool:
+    result = subprocess.run(
+        ["git", "cat-file", "-e", f"{ref}^{{commit}}"],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def fetch_commit(ref: str) -> bool:
+    """Fetch a commit the checkout no longer reaches, such as a force-push orphan."""
+    result = subprocess.run(
+        ["git", "fetch", "--quiet", "origin", ref],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return False
+    print(f"Fetched the missing commit {ref[:7]} from origin")
+    return has_commit(ref)
+
+
 def list_packages() -> tuple[list[str], set[str]]:
     """Return the packages to build and every name under packages/."""
     target: list[str] = []
@@ -98,6 +121,9 @@ def classify(event: str, before: str, sha: str) -> tuple[bool, set[str]]:
         return True, set()
     if not before or set(before) == {"0"}:
         print("No previous commit accompanied this push")
+        return True, set()
+    if not has_commit(before) and not fetch_commit(before):
+        print("The previous commit has vanished from this history")
         return True, set()
     try:
         diff = subprocess.run(
