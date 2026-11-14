@@ -1,0 +1,77 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+_pkgname=polybar
+pkgname=$_pkgname-pinned
+pkgver=3.7.2
+pkgrel=2
+pkgdesc="Fast and easy-to-use status bar with the right modules pinned to the bar edge"
+arch=('x86_64')
+url="https://github.com/polybar/polybar"
+license=('MIT')
+provides=('polybar')
+conflicts=('polybar')
+depends=(
+  'alsa-lib'
+  'cairo'
+  'curl'
+  'freetype2'
+  'jsoncpp'
+  'libmpdclient'
+  'libnl'
+  'libpulse'
+  'libuv'
+  'xcb-util-cursor'
+  'xcb-util-image'
+  'xcb-util-wm'
+  'xcb-util-xrm'
+)
+makedepends=(
+  'cmake'
+  'git'
+  'i3-wm'
+  'pkgconf'
+  'python'
+  'python-sphinx'
+)
+source=(
+  "$_pkgname-$pkgver.tar.gz::https://github.com/polybar/polybar/archive/refs/tags/$pkgver.tar.gz"
+  "xpp::git+https://github.com/polybar/xpp#commit=a8b9e682ba65ca4a6d805c8be97c5232bae3c0c1"
+  "i3ipcpp::git+https://github.com/polybar/i3ipcpp#commit=0daa58349ab3373161a4a73c1ccd2822328d2c73"
+  'polybar-pin-right-block.patch'
+)
+sha256sums=(
+  '6c281124d5aab30de3c284f20c68eea6d371e6af8258c73971dc515d5c28a474'
+  'SKIP'
+  'SKIP'
+  '9427c506bfe92c110bb536fc131881239b2e0418860485a4f08ff66040aafc87'
+)
+
+# Pin the right block to the bar edge so a long title cannot push it off.
+prepare() {
+  cd "$_pkgname-$pkgver"
+  patch -Np1 -i "$srcdir/polybar-pin-right-block.patch"
+  cp -a "$srcdir/xpp" "$srcdir/i3ipcpp" lib/
+}
+
+build() {
+  cd "$_pkgname-$pkgver"
+
+  # GCC 16 needs these includes explicitly.
+  export CXXFLAGS="$CXXFLAGS -include cstdint -include ctime"
+
+  # cairo-fc reaches freetype indirectly, and binutils links no indirect DSO.
+  cmake -B build -S . \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_DOC=ON \
+    -DBUILD_DOC_HTML=OFF \
+    -DBUILD_DOC_MAN=ON \
+    -DBUILD_TESTS=OFF \
+    -DCMAKE_CXX_STANDARD_LIBRARIES="-lfreetype"
+  cmake --build build
+}
+
+package() {
+  cd "$_pkgname-$pkgver"
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -45,18 +45,19 @@ To see everything that's published, run `pacman -Sl forge`.
 
 ## Packages
 
-There are eight packages, each under the `packages/` directory:
+There are nine packages, each under the `packages/` directory:
 
-| Package                     | Description                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| calpdf-git                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git) |
-| exercism-bin                | Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)            |
-| lutgen-cli-git              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                   |
-| orchis-theme-4px            | Orchis GTK theme built with 4px rounded corners                                                                    |
-| otf-geist-mono-nerd-trimmed | Geist Mono Nerd Font Mono with only the four styles the desktop uses                                               |
-| swayfx-git                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                          |
-| wayfreeze-git               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                      |
-| xdg-terminal-exec-git       | Open the user's preferred terminal emulator from apps and scripts (git)                                            |
+| Package                     | Description                                                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| calpdf-git                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git)          |
+| exercism-bin                | Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)                     |
+| lutgen-cli-git              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                            |
+| orchis-theme-4px            | Orchis GTK theme built with 4px rounded corners                                                                             |
+| otf-geist-mono-nerd-trimmed | Geist Mono Nerd Font Mono with only the four styles the desktop uses                                                        |
+| polybar-pinned              | Polybar with the right modules pinned to the bar edge, so a long window title cannot push the clock and systray off the bar |
+| swayfx-git                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                                   |
+| wayfreeze-git               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                               |
+| xdg-terminal-exec-git       | Open the user's preferred terminal emulator from apps and scripts (git)                                                     |
 
 ## Patches
 
@@ -64,11 +65,12 @@ Some packages need a change that upstream has not released yet. I keep that
 change as a patch file next to the `PKGBUILD` and apply it in `prepare()`. This
 way I do not have to fork the whole repository or wait for a pull request.
 
-| Package    | Patch                               | Effect                                                                                  |
-| ---------- | ----------------------------------- | --------------------------------------------------------------------------------------- |
-| swayfx-git | `libinput-scroll-circular.patch`    | Report `circular` as the libinput scroll method in the IPC JSON                         |
-| swayfx-git | `swayfx-layer-resize.patch`         | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
-| swayfx-git | `swayfx-swaybg-no-background.patch` | Do not start `swaybg` when no output has a background configured                        |
+| Package        | Patch                               | Effect                                                                                  |
+| -------------- | ----------------------------------- | --------------------------------------------------------------------------------------- |
+| polybar-pinned | `polybar-pin-right-block.patch`     | Pin the right modules to the bar edge, so a long title is drawn under them              |
+| swayfx-git     | `libinput-scroll-circular.patch`    | Report `circular` as the libinput scroll method in the IPC JSON                         |
+| swayfx-git     | `swayfx-layer-resize.patch`         | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
+| swayfx-git     | `swayfx-swaybg-no-background.patch` | Do not start `swaybg` when no output has a background configured                        |
 
 Delete a patch when upstream includes the same change.
 

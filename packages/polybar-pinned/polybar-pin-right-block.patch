@@ -1,0 +1,32 @@
+diff --git a/src/components/renderer.cpp b/src/components/renderer.cpp
+index 8b5c75c..1054821 100644
+--- a/src/components/renderer.cpp
++++ b/src/components/renderer.cpp
+@@ -439,24 +439,10 @@ double renderer::block_x(alignment a) const {
+     }
+     case alignment::RIGHT: {
+       /*
+-       * The block immediately to the left of this block
+-       *
+-       * Generally the center block unless it is empty.
++       * Pin the block to the right edge. Upstream clears the center block
++       * instead, which moves the clock and tray past the bar edge.
+        */
+-      alignment left_barrier = alignment::CENTER;
+-
+-      if (block_w(alignment::CENTER) == 0) {
+-        left_barrier = alignment::LEFT;
+-      }
+-
+-      // The minimum x position this block can start at
+-      double min_pos = block_x(left_barrier) + block_w(left_barrier);
+-
+-      if (block_w(left_barrier) != 0) {
+-        min_pos += BLOCK_GAP;
+-      }
+-
+-      return std::max(m_rect.width - block_w(a), min_pos);
++      return m_rect.width - block_w(a);
+     }
+     default:
+       return 0.0;
