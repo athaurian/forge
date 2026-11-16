@@ -5,19 +5,15 @@
 
 </div>
 
-Hi. This is my custom Arch Linux package repository.
+Hi. This is my Arch Linux package repository hosting my own tools and patched packages.
 
-Packages are built, signed with _GNU Privacy Guard (GPG)_, and published to
-GitHub Pages automatically. Install the packages with `pacman`.
+All packages are GPG-signed and published to GitHub Pages automatically. Native packages are compiled for **`x86-64-v3`** CPUs (Haswell / Zen 1 or newer). Architecture-independent (`any`) packages run on any `x86_64` machine. Be advised, installing a native package on an older `x86-64` processor fails with `SIGILL`.
 
-> [!CAUTION]
->
-> - **Native packages:** Compile to native machine code, target `x86-64-v3`, and require a compatible CPU.
-> - **Other packages:** Run on any `x86_64` machine.
+Enjoy.
 
 ## Setup
 
-1. Import and trust the signing key:
+1. Import and locally sign the repository GPG key:
 
    ```sh
    curl -fsSL https://athaurian.github.io/forge/signing_key.asc -o /tmp/forge-signing-key.asc
@@ -33,7 +29,7 @@ GitHub Pages automatically. Install the packages with `pacman`.
    Server = https://athaurian.github.io/forge
    ```
 
-3. Sync and install:
+3. Sync the databases and install a package:
 
    ```sh
    sudo pacman -Sy
@@ -44,60 +40,49 @@ To see everything that's published, run `pacman -Sl forge`.
 
 ## Packages
 
-Each package is defined under `packages/<name>/`:
-
-| Package                     | Description                                                                                                                 |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| calpdf-git                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git)          |
-| exercism-bin                | Download exercises from exercism.org, solve them locally, and submit solutions (prebuilt binary)                            |
-| lutgen-cli-git              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                            |
-| orchis-theme-4px            | Orchis GTK theme built with 4px rounded corners                                                                             |
-| otf-geist-mono-nerd-trimmed | Geist Mono Nerd Font Mono with only the four styles the desktop uses                                                        |
-| polybar-pinned              | Polybar with the right modules pinned to the bar edge, so a long window title cannot push the clock and systray off the bar |
-| swayfx-git                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                                   |
-| wayfreeze-git               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                               |
-| xdg-terminal-exec-git       | Open the user's preferred terminal emulator from apps and scripts (git)                                                     |
+| Package                       | Description                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `calpdf-git`                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git) |
+| `exercism-bin`                | Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)            |
+| `i3lock-color-patched`        | i3lock-color with status text, Caps Lock, clock, vignette, and timings matched to swaylock-effects                 |
+| `lutgen-cli-git`              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                   |
+| `orchis-theme-4px`            | Orchis GTK theme built with 4px rounded corners                                                                    |
+| `otf-geist-mono-nerd-trimmed` | Geist Mono Nerd Font Mono, trimmed to the four styles the desktop uses                                             |
+| `polybar-pinned`              | Fast and easy-to-use status bar with the right modules pinned to the bar edge                                      |
+| `swayfx-git`                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                          |
+| `wayfreeze-git`               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                      |
+| `xdg-terminal-exec-git`       | Open the user's preferred terminal emulator from apps and scripts (git)                                            |
 
 ## Patches
 
-When upstream has not released a change, the change is stored as a patch file
-next to the `PKGBUILD` and applied in `prepare()`. Patching avoids forking the
-whole repository or waiting for a pull request.
+When upstream has not released a change, the change is stored as a patch file next to the `PKGBUILD` and applied in `prepare()`. Patching avoids forking the whole repository or waiting for a pull request.
 
-| Package        | Patch                               | Effect                                                                                  |
-| -------------- | ----------------------------------- | --------------------------------------------------------------------------------------- |
-| polybar-pinned | `polybar-pin-right-block.patch`     | Pin the right modules to the bar edge, so a long title is drawn under them              |
-| swayfx-git     | `libinput-scroll-circular.patch`    | Report `circular` as the libinput scroll method in the IPC JSON                         |
-| swayfx-git     | `swayfx-layer-resize.patch`         | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface |
-| swayfx-git     | `swayfx-swaybg-no-background.patch` | Do not start `swaybg` when no output has a background configured                        |
+| Package              | Patch                               | Effect                                                                                             |
+| -------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| i3lock-color-patched | `i3lock-color-status-text.patch`    | Center status and clock text and match swaylock-effects strings, indicator behaviour, and vignette |
+| polybar-pinned       | `polybar-pin-right-block.patch`     | Pin the right modules to the bar edge, so a long title is drawn under them                         |
+| swayfx-git           | `libinput-scroll-circular.patch`    | Report `circular` as the libinput scroll method in the IPC JSON                                    |
+| swayfx-git           | `swayfx-layer-resize.patch`         | Rearrange a layer when its buffer changes size, so the layer shadow follows the surface            |
+| swayfx-git           | `swayfx-swaybg-no-background.patch` | Do not start `swaybg` when no output has a background configured                                   |
 
 Delete a patch when upstream includes the same change.
 
 ## Development
 
-Run `make check` before committing. It requires the `shfmt` and Node
-toolchains and a Python environment managed by `uv`.
+Run `make check` before committing. It requires the `shfmt` and Node toolchains and a Python environment managed by `uv`.
 
 ### Skipping a package
 
-To skip a package temporarily, create an empty `packages/NAME/HOLD`. The
-package stays out of the next build and returns to the repository on the next
-publish.
+To skip a package temporarily, create an empty `packages/NAME/HOLD`. The package stays out of the next build and returns to the repository on the next publish.
 
 ## Build pipeline
 
 - **Push to `main`:** Rebuilds only the package definitions the diff touched.
 - **Scheduled run:** Rebuilds every package at 04:37 UTC each day.
 - **Manual dispatch:** Rebuilds every package on `workflow_dispatch`.
-- **Version bumps:** Git packages recompute `pkgver` at build time, so their
-  versions advance only when upstream moves.
-- **Publishing:** A package is published only when every job in the run
-  succeeds.
+- **Version bumps:** Git packages recompute `pkgver` at build time, so their versions advance only when upstream moves.
+- **Publishing:** A package is published only when every job in the run succeeds.
 
 ## License
 
-Released under the MIT license. See [LICENSE](LICENSE) for the full text.
-
----
-
-Enjoy.
+MIT
