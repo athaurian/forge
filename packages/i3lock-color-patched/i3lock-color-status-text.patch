@@ -1,0 +1,868 @@
+diff --git a/fonts.h b/fonts.h
+--- a/fonts.h
++++ b/fonts.h
+@@ -16,6 +16,7 @@
+ 
+ typedef struct text {
+     bool show;
++    bool center;
+ 
+     char str[512];
+     double size;
+diff --git a/i3lock.1 b/i3lock.1
+--- a/i3lock.1
++++ b/i3lock.1
+@@ -185,6 +185,16 @@
+ compositor to perform blurring (e.g. compton, picom).
+ 
+ .TP
++.B \-\-vignette=base:factor
++Applies a vignette effect to the background image. Both values must be between
++0 and 1; factor is clamped to
++.IR 1\-base .
++The center brightness is
++.IR base + factor ,
++and the corners use
++.IR base .
++
++.TP
+ .B \-k, \-\-clock, \-\-force\-clock
+ Displays the clock. \-\-force\-clock also displays the clock when there's
+ indicator text (useful for when the clock is not positioned with the indicator).
+@@ -233,8 +243,9 @@
+ Sets the color of the seperators at both ends of the highlight arcs on the ring.
+ 
+ .TP
+-.B \-\-{verif, wrong, modif}\-color=rrggbbaa
+-Sets the color of the status text while verifying and when password is wrong.
++.B \-\-{verif, wrong, capslock}\-color=rrggbbaa
++Sets the color of the status text while verifying, when the password is wrong,
++and for the Caps Lock indicator.
+ 
+ .TP
+ .B \-\-{layout, time, date, greeter}\-color=rrggbbaa
+@@ -251,6 +262,8 @@
+ 1 - Displays up until the first parenthesis, i.e. "English"
+ .IP \[bu]
+ 2 - Displays just the contents of the parenthesis, i.e. "US"
++.IP \[bu]
++3 - Displays the full string only when more than one layout exists
+ .RE
+ 
+ .B For all following -str or -text options, some control characters
+@@ -267,23 +280,23 @@
+ Sets the format used for generating the date string.
+ 
+ .TP
+-.B \-\-verif\-text="verifying…"
++.B \-\-verif\-text="Verifying"
+ Sets the string to be shown while verifying the password/input/key/etc.
+ 
+ .TP
+-.B \-\-wrong\-text="wrong!"
++.B \-\-wrong\-text="Wrong"
+ Sets the string to be shown upon entering an incorrect password.
+ 
+ .TP
+-.B \-\-noinput\-text="no input"
+-Sets the string to be shown upon pressing backspace without anything to delete.
++.B \-\-noinput\-text="Cleared"
++Sets the string to be shown after the password buffer is cleared.
+ 
+ .TP
+-.B \-\-lock\-text="locking…"
++.B \-\-lock\-text="Locking…"
+ Sets the string to be shown while acquiring pointer and keyboard focus.
+ 
+ .TP
+-.B \-\-lockfailed\-text="lock failed!"
++.B \-\-lockfailed\-text="Lock failed!"
+ Sets the string to be shown after failing to acquire pointer and keyboard focus.
+ 
+ .TP
+@@ -292,12 +305,12 @@
+ 
+ .TP
+ .B \-\-no\-modkey\-text
+-Hides the modkey indicator (Num, Caps Lock ...)
++Hides the Caps Lock indicator.
+ 
+ .TP
+-.B \-\-{time, date, layout, verif, wrong, modif, greeter}\-align
++.B \-\-{time, date, layout, verif, wrong, greeter}\-align
+ Sets the text alignment of the time, date, keylayout, verification, wrong,
+-modifier and greeter texts.
++and greeter texts.
+ .RS
+ .IP \[bu] 2
+ 0 - centered (default)
+@@ -308,7 +321,7 @@
+ .RE
+ 
+ .TP
+-.B \-\-{time, date, layout, verif, wrong, greeter, modif}outline\-color=rrggbbaa
++.B \-\-{time, date, layout, verif, wrong, greeter}outline\-color=rrggbbaa
+ Sets the color of the outlines.
+ 
+ .TP
+@@ -320,7 +333,7 @@
+ Sets the font size used to render various strings.
+ 
+ .TP
+-.B \-\-{time, date, layout, verif, wrong, greeter, modifier}outline\-width=number
++.B \-\-{time, date, layout, verif, wrong, greeter}outline\-width=number
+ Sets the width of the outline.
+ 
+ .TP
+diff --git a/i3lock.c b/i3lock.c
+--- a/i3lock.c
++++ b/i3lock.c
+@@ -87,6 +87,7 @@
+ char timecolor[9] = "000000ff";
+ char datecolor[9] = "000000ff";
+ char modifcolor[9] = "000000ff";
++char capslockcolor[9] = "ffffffff";
+ char keyhlcolor[9] = "33db00ff";
+ char bshlcolor[9] = "db3300ff";
+ char separatorcolor[9] = "000000ff";
+@@ -172,6 +173,9 @@
+ char greeter_x_expr[32] = "ix\0";
+ char greeter_y_expr[32] = "iy\0";
+ 
++double vignette_base = 1.0;
++double vignette_factor = 0.0;
++
+ double time_size = 32.0;
+ double date_size = 14.0;
+ double verif_size = 28.0;
+@@ -190,11 +194,11 @@
+ double layoutoutlinewidth = 0;
+ double greeteroutlinewidth = 0;
+ 
+-char* verif_text = "verifying…";
+-char* wrong_text = "wrong!";
+-char* noinput_text = "no input";
+-char* lock_text = "locking…";
+-char* lock_failed_text = "lock failed!";
++char* verif_text = "Verifying";
++char* wrong_text = "Wrong";
++char* noinput_text = "Cleared";
++char* lock_text = "Locking…";
++char* lock_failed_text = "Lock failed!";
+ int   keylayout_mode = -1;
+ char* layout_text = NULL;
+ char* greeter_text = "";
+@@ -220,7 +224,6 @@
+ static bool beep = false;
+ bool debug_mode = false;
+ bool unlock_indicator = true;
+-char *modifier_string = NULL;
+ static bool dont_fork = false;
+ struct ev_loop *main_loop;
+ static struct ev_timer *clear_auth_wrong_timeout;
+@@ -339,13 +342,22 @@
+  * arg: 0 (show full string returned)
+  *      1 (show the text, sans parenthesis)
+  *      2 (show just what's in the parenthesis)
++ *      3 (show the full string only when more than one layout exists)
+  *
+  * credit to the XKB/xcb implementation (no libx11) from https://gist.github.com/bluetech/6061368
+  * docs are really sparse, so finding some random implementation was nice
+  */
+ static char* get_keylayoutname(int mode, xcb_connection_t* conn) {
+-    if (mode < 0 || mode > 2) return NULL;
+-    char *newans = NULL, *newans2 = NULL, *answer = xcb_get_key_group_names(conn);
++    if (mode < 0 || mode > 3) return NULL;
++    int group_count = 0;
++    char *newans = NULL, *newans2 = NULL, *answer = xcb_get_key_group_names(conn, &group_count);
++    if (mode == 3) {
++        if (group_count <= 1) {
++            free(answer);
++            return NULL;
++        }
++        mode = 0;
++    }
+     int substringStart = 0, substringEnd = 0, size = 0;
+     DEBUG("keylayout answer is: [%s]\n", answer);
+     switch (mode) {
+@@ -429,6 +441,11 @@
+     return true;
+ }
+ 
++bool i3lock_caps_lock_active(void) {
++    return xkb_state != NULL &&
++        xkb_state_mod_name_is_active(xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_EFFECTIVE);
++}
++
+ #if XKBCOMPOSE == 1
+ /*
+  * Loads the XKB compose table from the given locale.
+@@ -524,12 +541,6 @@
+     auth_state = STATE_AUTH_IDLE;
+     redraw_screen();
+ 
+-    /* Clear modifier string. */
+-    if (modifier_string != NULL) {
+-        free(modifier_string);
+-        modifier_string = NULL;
+-    }
+-
+     /* Now free this timeout. */
+     STOP_TIMER(clear_auth_wrong_timeout);
+ 
+@@ -551,13 +562,28 @@
+     password[input_position] = '\0';
+ }
+ 
+-static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
++static void show_cleared(void) {
+     clear_input();
++    retry_verification = false;
++    if (auth_state == STATE_AUTH_WRONG) {
++        auth_state = STATE_AUTH_IDLE;
++        STOP_TIMER(clear_auth_wrong_timeout);
++    }
++    unlock_state = STATE_NOTHING_TO_DELETE;
++    STOP_TIMER(discard_passwd_timeout);
++    START_TIMER(clear_indicator_timeout, 3.0, clear_indicator_cb);
++    redraw_screen();
++}
++
++static void discard_passwd_cb(EV_P_ ev_timer *w, int revents) {
++    show_cleared();
+     STOP_TIMER(discard_passwd_timeout);
+ }
+ 
+ static void input_done(void) {
+     STOP_TIMER(clear_auth_wrong_timeout);
++    STOP_TIMER(clear_indicator_timeout);
++    STOP_TIMER(discard_passwd_timeout);
+     auth_state = STATE_AUTH_VERIFY;
+     unlock_state = STATE_STARTED;
+     redraw_screen();
+@@ -600,53 +626,16 @@
+     if (debug_mode)
+         fprintf(stderr, "Authentication failure\n");
+ 
+-    /* Get state of Caps and Num lock modifiers, to be displayed in
+-     * STATE_AUTH_WRONG state */
+-    xkb_mod_index_t idx, num_mods;
+-    const char *mod_name;
+-
+-    num_mods = xkb_keymap_num_mods(xkb_keymap);
+-
+-    for (idx = 0; idx < num_mods; idx++) {
+-        if (!xkb_state_mod_index_is_active(xkb_state, idx, XKB_STATE_MODS_EFFECTIVE))
+-            continue;
+-
+-        mod_name = xkb_keymap_mod_get_name(xkb_keymap, idx);
+-        if (mod_name == NULL)
+-            continue;
+-
+-        /* Replace certain xkb names with nicer, human-readable ones. */
+-        if (strcmp(mod_name, XKB_MOD_NAME_CAPS) == 0)
+-            mod_name = "Caps Lock";
+-        else if (strcmp(mod_name, XKB_MOD_NAME_ALT) == 0)
+-            mod_name = "Alt";
+-        else if (strcmp(mod_name, XKB_MOD_NAME_NUM) == 0)
+-            mod_name = "Num Lock";
+-        else if (strcmp(mod_name, XKB_MOD_NAME_LOGO) == 0)
+-            mod_name = "Super";
+-
+-        if (show_modkey_text) {
+-            char *tmp;
+-            if (modifier_string == NULL) {
+-                if (asprintf(&tmp, "%s", mod_name) != -1)
+-                    modifier_string = tmp;
+-            } else if (asprintf(&tmp, "%s, %s", modifier_string, mod_name) != -1) {
+-                free(modifier_string);
+-                modifier_string = tmp;
+-            }
+-        }
+-    }
+-
+     auth_state = STATE_AUTH_WRONG;
+     failed_attempts += 1;
+     clear_input();
+     if (unlock_indicator)
+         redraw_screen();
+ 
+-    /* Clear this state after 2 seconds (unless the user enters another
++    /* Clear this state after 3 seconds (unless the user enters another
+      * password during that time). */
+     ev_now_update(main_loop);
+-    START_TIMER(clear_auth_wrong_timeout, TSTAMP_N_SECS(2), clear_auth_wrong);
++    START_TIMER(clear_auth_wrong_timeout, TSTAMP_N_SECS(3), clear_auth_wrong);
+ 
+     /* Cancel the clear_indicator_timeout, it would hide the unlock indicator
+      * too early. */
+@@ -891,6 +880,12 @@
+                 retry_verification = false;
+                 clear_input();
+             }
++            // A key press starts a fresh attempt and dismisses the wrong
++            // password message.
++            if (auth_state == STATE_AUTH_WRONG) {
++                auth_state = STATE_AUTH_IDLE;
++                STOP_TIMER(clear_auth_wrong_timeout);
++            }
+     }
+ 
+     // backspace, esc, delete, etc
+@@ -900,16 +895,24 @@
+             if ((ksym == XKB_KEY_u && ctrl) ||
+                 ksym == XKB_KEY_Escape) {
+                 DEBUG("C-u pressed\n");
+-                clear_input();
+-                /* Also hide the unlock indicator */
+-                if (unlock_indicator)
+-                    clear_indicator();
++                show_cleared();
++                return;
++            }
++            break;
++
++        case XKB_KEY_c:
++            if (ctrl) {
++                show_cleared();
+                 return;
+             }
+             break;
+ 
+         case XKB_KEY_Delete:
+         case XKB_KEY_KP_Delete:
++            if (ctrl) {
++                show_cleared();
++                return;
++            }
+             /* Deleting forward doesn’t make sense, as i3lock doesn’t allow you
+              * to move the cursor when entering a password. We need to eat this
+              * key press so that it won’t be treated as part of the password,
+@@ -921,10 +924,14 @@
+             if (ksym == XKB_KEY_h && !ctrl)
+                 break;
+ 
++            if (ksym == XKB_KEY_BackSpace && ctrl) {
++                show_cleared();
++                return;
++            }
++
+             if (input_position == 0) {
+-                START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
+-                unlock_state = STATE_NOTHING_TO_DELETE;
+-                redraw_screen();
++                show_cleared();
++                START_TIMER(discard_passwd_timeout, TSTAMP_N_SECS(10), discard_passwd_cb);
+                 return;
+             }
+ 
+@@ -932,9 +939,8 @@
+             u8_dec(password, &input_position);
+             password[input_position] = '\0';
+ 
+-            /* Hide the unlock indicator after a bit if the password buffer is
+-             * empty. */
+-            START_TIMER(clear_indicator_timeout, 1.0, clear_indicator_cb);
++            START_TIMER(clear_indicator_timeout, 3.0, clear_indicator_cb);
++            START_TIMER(discard_passwd_timeout, TSTAMP_N_SECS(10), discard_passwd_cb);
+             unlock_state = STATE_BACKSPACE_ACTIVE;
+             redraw_screen();
+             unlock_state = STATE_KEY_PRESSED;
+@@ -970,10 +976,10 @@
+ 
+         struct ev_timer *timeout = NULL;
+         START_TIMER(timeout, TSTAMP_N_SECS(0.25), redraw_timeout);
+-        STOP_TIMER(clear_indicator_timeout);
++        START_TIMER(clear_indicator_timeout, 3.0, clear_indicator_cb);
+     }
+ 
+-    START_TIMER(discard_passwd_timeout, TSTAMP_N_MINS(3), discard_passwd_cb);
++    START_TIMER(discard_passwd_timeout, TSTAMP_N_SECS(10), discard_passwd_cb);
+ }
+ 
+ /*
+@@ -1561,6 +1567,7 @@
+         {"fill", no_argument, NULL, 'F'},
+         {"scale", no_argument, NULL, 'L'},
+         {"max", no_argument, NULL, 'M'},
++        {"vignette", required_argument, NULL, 551},
+         {"ignore-empty-password", no_argument, NULL, 'e'},
+         {"inactivity-timeout", required_argument, NULL, 'I'},
+         {"show-failed-attempts", no_argument, NULL, 'f'},
+@@ -1585,6 +1592,7 @@
+         {"bshl-color", required_argument, NULL, 313},
+         {"separator-color", required_argument, NULL, 314},
+         {"greeter-color", required_argument, NULL, 315},
++        {"capslock-color", required_argument, NULL, 324},
+ 
+         // text outline colors
+         {"verifoutline-color", required_argument, NULL, 316},
+@@ -1889,6 +1897,9 @@
+             case 315:
+                 parse_color(greetercolor);
+                 break;
++            case 324:
++                parse_color(capslockcolor);
++                break;
+             case  316:
+                 parse_color(verifoutlinecolor);
+                 break;
+@@ -2393,6 +2404,13 @@
+             case 905:
+                 no_verify = true;
+                 break;
++            case 551:
++                if (sscanf(optarg, "%lf:%lf", &vignette_base, &vignette_factor) != 2) {
++                    errx(EXIT_FAILURE, "Invalid vignette effect: %s", optarg);
++                }
++                vignette_base = fmin(1, fmax(0, vignette_base));
++                vignette_factor = fmin(1 - vignette_base, fmax(0, vignette_factor));
++                break;
+             case 998:
+                 image_raw_format = strdup(optarg);
+                 break;
+diff --git a/unlock_indicator.c b/unlock_indicator.c
+--- a/unlock_indicator.c
++++ b/unlock_indicator.c
+@@ -32,6 +32,8 @@
+ 
+ extern double circle_radius;
+ extern double ring_width;
++extern double vignette_base;
++extern double vignette_factor;
+ 
+ #define BUTTON_RADIUS (circle_radius)
+ #define RING_WIDTH (ring_width)
+@@ -57,8 +59,8 @@
+ /* Whether the unlock indicator is enabled (defaults to true). */
+ extern bool unlock_indicator;
+ 
+-/* List of pressed modifiers, or NULL if none are pressed. */
+-extern char *modifier_string;
++/* Whether Caps Lock is currently active. */
++extern bool i3lock_caps_lock_active(void);
+ 
+ /* A Cairo surface containing the specified image (-i), if any. */
+ extern cairo_surface_t *img;
+@@ -95,6 +97,7 @@
+ extern char bshlcolor[9];
+ extern char separatorcolor[9];
+ extern char greetercolor[9];
++extern char capslockcolor[9];
+ extern int internal_line_source;
+ 
+ extern char verifoutlinecolor[9];
+@@ -167,6 +170,9 @@
+ bool load_slideshow_images(const char *path);
+ cairo_surface_t* load_image(char* image_path);
+ 
++/* Whether modifier key text should be displayed. */
++extern bool show_modkey_text;
++
+ /* Whether the failed attempts should be displayed. */
+ extern bool show_failed_attempts;
+ /* Number of failed unlock attempts. */
+@@ -196,6 +202,8 @@
+ unlock_state_t unlock_state;
+ auth_state_t auth_state;
+ 
++static bool caps_lock_active;
++
+ // color arrays
+ rgba_t insidever16;
+ rgba_t insidewrong16;
+@@ -210,6 +218,7 @@
+ rgba_t time16;
+ rgba_t date16;
+ rgba_t modif16;
++rgba_t capslock16;
+ rgba_t keyhl16;
+ rgba_t bshl16;
+ rgba_t sep16;
+@@ -433,10 +442,18 @@
+             break;
+         case 0:
+         default:
+-            x = text.x - extents.x_advance / 2;
++            if (text.center) {
++                x = text.x - (extents.width / 2 + extents.x_bearing);
++            } else {
++                x = text.x - extents.x_advance / 2;
++            }
+             break;
+     }
+ 
++    if (text.center) {
++        text.y -= extents.height / 2 + extents.y_bearing;
++    }
++
+     cairo_set_source_rgba(ctx, text.color.red, text.color.green, text.color.blue, text.color.alpha);
+ 
+     draw_text_with_cc(ctx, text, x);
+@@ -538,7 +555,11 @@
+                 break;
+             default:
+                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
+-                    cairo_set_source_rgba(ctx, insidewrong16.red, insidewrong16.green, insidewrong16.blue, insidewrong16.alpha);
++                    cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
++                    break;
++                }
++                if (caps_lock_active) {
++                    cairo_set_source_rgba(ctx, insidever16.red, insidever16.green, insidever16.blue, insidever16.alpha);
+                     break;
+                 }
+                 cairo_set_source_rgba(ctx, inside16.red, inside16.green, inside16.blue, inside16.alpha);
+@@ -569,12 +590,22 @@
+                 break;
+             case STATE_AUTH_IDLE:
+                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
+-                    cairo_set_source_rgba(ctx, ringwrong16.red, ringwrong16.green, ringwrong16.blue, ringwrong16.alpha);
++                    cairo_set_source_rgba(ctx, ring16.red, ring16.green, ring16.blue, ring16.alpha);
++                    if (internal_line_source == 1) {
++                        line16.red = ring16.red;
++                        line16.green = ring16.green;
++                        line16.blue = ring16.blue;
++                        line16.alpha = ring16.alpha;
++                    }
++                    break;
++                }
++                if (caps_lock_active) {
++                    cairo_set_source_rgba(ctx, ringver16.red, ringver16.green, ringver16.blue, ringver16.alpha);
+                     if (internal_line_source == 1) {
+-                        line16.red = ringwrong16.red;
+-                        line16.green = ringwrong16.green;
+-                        line16.blue = ringwrong16.blue;
+-                        line16.alpha = ringwrong16.alpha;
++                        line16.red = ringver16.red;
++                        line16.green = ringver16.green;
++                        line16.blue = ringver16.blue;
++                        line16.alpha = ringver16.alpha;
+                     }
+                     break;
+                 }
+@@ -603,8 +634,12 @@
+             cairo_arc(ctx, ind_x, ind_y, BUTTON_RADIUS,
+                       highlight_start, highlight_start + (M_PI / 3.0));
+             if (unlock_state == STATE_KEY_ACTIVE) {
+-                /* For normal keys, we use a lighter green. */
+-                cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
++                if (caps_lock_active) {
++                    cairo_set_source_rgba(ctx, capslock16.red, capslock16.green, capslock16.blue, capslock16.alpha);
++                } else {
++                    /* For normal keys, we use a lighter green. */
++                    cairo_set_source_rgba(ctx, keyhl16.red, keyhl16.green, keyhl16.blue, keyhl16.alpha);
++                }
+             } else {
+                 /* For backspace, we use red. */
+                 cairo_set_source_rgba(ctx, bshl16.red, bshl16.green, bshl16.blue, bshl16.alpha);
+@@ -685,6 +720,7 @@
+     colorgen(&tmp, timecolor, &time16);
+     colorgen(&tmp, datecolor, &date16);
+     colorgen(&tmp, modifcolor, &modif16);
++    colorgen(&tmp, capslockcolor, &capslock16);
+     colorgen(&tmp, keyhlcolor, &keyhl16);
+     colorgen(&tmp, bshlcolor, &bshl16);
+     colorgen(&tmp, separatorcolor, &sep16);
+@@ -715,6 +751,11 @@
+     DrawData draw_data;
+     memset(&draw_data, 0, sizeof(DrawData));
+ 
++    draw_data.status_text.center = true;
++    draw_data.keylayout_text.center = true;
++    draw_data.time_text.center = true;
++    draw_data.date_text.center = true;
++
+     return draw_data;
+ }
+ 
+@@ -751,13 +792,42 @@
+ 
+     draw_text(ctx, draw_data->status_text);
+     draw_text(ctx, draw_data->keylayout_text);
+-    draw_text(ctx, draw_data->mod_text);
+     draw_text(ctx, draw_data->time_text);
+     draw_text(ctx, draw_data->date_text);
+     draw_text(ctx, draw_data->greeter_text);
+ }
+ 
+ /*
++ * Multiplies the background colors by a per-pixel vignette factor, matching
++ * swaylock-effects' effect_vignette.
++ */
++static void apply_vignette(cairo_surface_t *surface) {
++    if (vignette_base >= 1.0 && vignette_factor <= 0.0)
++        return;
++
++    cairo_surface_flush(surface);
++    int width = cairo_image_surface_get_width(surface);
++    int height = cairo_image_surface_get_height(surface);
++    int stride = cairo_image_surface_get_stride(surface);
++    unsigned char *data = cairo_image_surface_get_data(surface);
++
++    for (int y = 0; y < height; ++y) {
++        double yf = (double)y / height;
++        for (int x = 0; x < width; ++x) {
++            double xf = (double)x / width;
++            double factor = vignette_base +
++                            vignette_factor * 16 * xf * yf * (1.0 - xf) * (1.0 - yf);
++            unsigned char *pixel = data + y * stride + x * 4;
++            pixel[0] = (unsigned char)(pixel[0] * factor);
++            pixel[1] = (unsigned char)(pixel[1] * factor);
++            pixel[2] = (unsigned char)(pixel[2] * factor);
++        }
++    }
++
++    cairo_surface_mark_dirty(surface);
++}
++
++/*
+  * Renders the lock screen on the provided drawable with the given resolution.
+  */
+ void render_lock(uint32_t *resolution, xcb_drawable_t drawable) {
+@@ -800,18 +870,34 @@
+         }
+     }
+ 
+-    if (blur_bg_img) {
+-        cairo_set_source_surface(xcb_ctx, blur_bg_img, 0, 0);
+-        cairo_paint(xcb_ctx);
+-    } else {
+-        cairo_set_source_rgba(xcb_ctx, background.red, background.green, background.blue, background.alpha);
+-        cairo_rectangle(xcb_ctx, 0, 0, resolution[0], resolution[1]);
+-        cairo_fill(xcb_ctx);
+-    }
++    /* Draw the background color and the (vignetted) image into the indicator surface. */
++    cairo_save(ctx);
++    cairo_identity_matrix(ctx);
++    cairo_set_source_rgba(ctx, background.red, background.green, background.blue, background.alpha);
++    cairo_paint(ctx);
++
++    if (img || blur_bg_img) {
++        cairo_surface_t *bg_image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, resolution[0], resolution[1]);
++        cairo_t *bg_image_ctx = cairo_create(bg_image);
++
++        if (blur_bg_img) {
++            cairo_set_source_surface(bg_image_ctx, blur_bg_img, 0, 0);
++            cairo_paint(bg_image_ctx);
++        }
++
++        if (img) {
++            draw_image(resolution, img, bg_image_ctx);
++        }
++
++        apply_vignette(bg_image);
++
++        cairo_set_source_surface(ctx, bg_image, 0, 0);
++        cairo_paint(ctx);
+ 
+-    if (img) {
+-        draw_image(resolution, img, xcb_ctx);
++        cairo_destroy(bg_image_ctx);
++        cairo_surface_destroy(bg_image);
+     }
++    cairo_restore(ctx);
+ 
+     /*
+      * gen text
+@@ -821,6 +907,7 @@
+      * draw text
+      */
+     DrawData draw_data = create_draw_data();
++    caps_lock_active = i3lock_caps_lock_active();
+ 
+     if (unlock_indicator &&
+         (unlock_state >= STATE_KEY_PRESSED || auth_state > STATE_AUTH_IDLE || show_indicator)) {
+@@ -869,26 +956,36 @@
+                 if (unlock_state == STATE_NOTHING_TO_DELETE) {
+                     draw_data.status_text.show = true;
+                     strncpy(draw_data.status_text.str, noinput_text, sizeof(draw_data.status_text.str) - 1);
+-                    draw_data.status_text.font = get_font_face(WRONG_FONT);
+-                    draw_data.status_text.color = wrong16;
+-                    draw_data.status_text.outline_color = wrongoutline16;
+-                    draw_data.status_text.size = wrong_size;
+-                    draw_data.status_text.outline_width = wrongoutlinewidth;
+-                    draw_data.status_text.align = wrong_align;
++                    draw_data.status_text.font = get_font_face(VERIF_FONT);
++                    draw_data.status_text.color = verif16;
++                    draw_data.status_text.outline_color = verifoutline16;
++                    draw_data.status_text.size = verif_size;
++                    draw_data.status_text.outline_width = verifoutlinewidth;
++                    draw_data.status_text.align = verif_align;
+                     break;
+                 }
+-                if (show_failed_attempts && failed_attempts > 0) {
++                if (caps_lock_active && show_modkey_text && unlock_state >= STATE_KEY_PRESSED) {
+                     draw_data.status_text.show = true;
+-                    draw_data.status_text.font = get_font_face(WRONG_FONT);
+-                    draw_data.status_text.color = wrong16;
+-                    draw_data.status_text.outline_color = wrongoutline16;
+-                    draw_data.status_text.size = wrong_size;
+-                    draw_data.status_text.outline_width = wrongoutlinewidth;
+-                    draw_data.status_text.align = wrong_align;
+-                    // TODO: variable for this
+-                    draw_data.status_text.size = 32.0;
++                    strncpy(draw_data.status_text.str, "Caps Lock", sizeof(draw_data.status_text.str) - 1);
++                    draw_data.status_text.font = get_font_face(VERIF_FONT);
++                    draw_data.status_text.color = capslock16;
++                    draw_data.status_text.outline_color = verifoutline16;
++                    draw_data.status_text.size = verif_size;
++                    draw_data.status_text.outline_width = verifoutlinewidth;
++                    draw_data.status_text.align = verif_align;
++                    break;
++                }
++                if (show_failed_attempts && failed_attempts > 0 &&
++                    unlock_state >= STATE_KEY_PRESSED) {
++                    draw_data.status_text.show = true;
++                    draw_data.status_text.font = get_font_face(VERIF_FONT);
++                    draw_data.status_text.color = verif16;
++                    draw_data.status_text.outline_color = verifoutline16;
++                    draw_data.status_text.size = verif_size;
++                    draw_data.status_text.outline_width = verifoutlinewidth;
++                    draw_data.status_text.align = verif_align;
+                     if (failed_attempts > 999) {
+-                        strncpy(draw_data.status_text.str, "> 999", sizeof(draw_data.status_text.str));
++                        strncpy(draw_data.status_text.str, "999+", sizeof(draw_data.status_text.str));
+                     } else {
+                         snprintf(draw_data.status_text.str, sizeof(draw_data.status_text.str), "%d", failed_attempts);
+                     }
+@@ -897,17 +994,6 @@
+         }
+     }
+ 
+-    if (modifier_string) {
+-        draw_data.mod_text.show = true;
+-        strncpy(draw_data.mod_text.str, modifier_string, sizeof(draw_data.mod_text.str) - 1);
+-        draw_data.mod_text.size = modifier_size;
+-        draw_data.mod_text.outline_width = modifieroutlinewidth;
+-        draw_data.mod_text.font = get_font_face(WRONG_FONT);
+-        draw_data.mod_text.align = modif_align;
+-        draw_data.mod_text.color = modif16;
+-        draw_data.mod_text.outline_color = modifoutline16;
+-    }
+-
+     if (layout_text) {
+         draw_data.keylayout_text.show = true;
+         strncpy(draw_data.keylayout_text.str, layout_text, sizeof(draw_data.keylayout_text.str) - 1);
+@@ -1008,8 +1094,6 @@
+     te_expr *te_verif_y_expr = compile_expression("--verifpos", verif_y_expr, vars, vars_size);
+     te_expr *te_wrong_x_expr = compile_expression("--wrongpos", wrong_x_expr, vars, vars_size);
+     te_expr *te_wrong_y_expr = compile_expression("--wrongpos", wrong_y_expr, vars, vars_size);
+-    te_expr *te_modif_x_expr = compile_expression("--modifpos", modif_x_expr, vars, vars_size);
+-    te_expr *te_modif_y_expr = compile_expression("--modifpos", modif_y_expr, vars, vars_size);
+     te_expr *te_bar_x_expr = compile_expression("--bar-position", bar_x_expr, vars, vars_size);
+     te_expr *te_bar_y_expr = strlen(bar_y_expr) ? compile_expression("--bar-position", bar_y_expr, vars, vars_size) : NULL;
+     te_expr *te_bar_width_expr = strlen(bar_width_expr) ? compile_expression("--bar-width", bar_width_expr, vars, vars_size) : NULL;
+@@ -1070,9 +1154,6 @@
+                     break;
+             }
+ 
+-            draw_data.mod_text.x = te_eval(te_modif_x_expr);
+-            draw_data.mod_text.y = te_eval(te_modif_y_expr);
+-
+             if (te_bar_y_expr) {
+                 draw_data.bar_x = te_eval(te_bar_x_expr);
+                 draw_data.bar_y = te_eval(te_bar_y_expr);
+@@ -1100,7 +1181,6 @@
+             DEBUG("Date at %fx%f on screen %d\n", draw_data.date_text.x, draw_data.date_text.y, current_screen + 1);
+             DEBUG("Layout at %fx%f on screen %d\n", draw_data.keylayout_text.x, draw_data.keylayout_text.y, current_screen + 1);
+             DEBUG("Status at %fx%f on screen %d\n", draw_data.status_text.x, draw_data.status_text.y, current_screen + 1);
+-            DEBUG("Mod at %fx%f on screen %d\n", draw_data.mod_text.x, draw_data.mod_text.y, current_screen + 1);
+             // scale_draw_data(&draw_data, scaling_factor);
+             draw_elements(ctx, &draw_data);
+         }
+@@ -1139,9 +1219,6 @@
+                 draw_data.status_text.y = te_eval(te_status_y_expr);
+                 break;
+         }
+-        draw_data.mod_text.x = te_eval(te_modif_x_expr);
+-        draw_data.mod_text.y = te_eval(te_modif_y_expr);
+-
+         if (te_bar_y_expr) {
+             draw_data.bar_x = te_eval(te_bar_x_expr);
+             draw_data.bar_y = te_eval(te_bar_y_expr);
+@@ -1168,7 +1245,6 @@
+         DEBUG("Date at %fx%f\n", draw_data.date_text.x, draw_data.date_text.y);
+         DEBUG("Layout at %fx%f\n", draw_data.keylayout_text.x, draw_data.keylayout_text.y);
+         DEBUG("Status at %fx%f\n", draw_data.status_text.x, draw_data.status_text.y);
+-        DEBUG("Mod at %fx%f\n", draw_data.mod_text.x, draw_data.mod_text.y);
+ 
+         draw_elements(ctx, &draw_data);
+     }
+@@ -1187,8 +1263,6 @@
+     te_free(te_verif_y_expr);
+     te_free(te_wrong_x_expr);
+     te_free(te_wrong_y_expr);
+-    te_free(te_modif_x_expr);
+-    te_free(te_modif_y_expr);
+     te_free(te_bar_x_expr);
+     te_free(te_bar_y_expr);
+     te_free(te_bar_width_expr);
+@@ -1280,15 +1354,11 @@
+ }
+ 
+ /*
+- * Hides the unlock indicator completely when there is no content in the
+- * password buffer.
++ * Returns the indicator to its idle state after the input idle timeout.
+  *
+  */
+ void clear_indicator(void) {
+-    if (input_position == 0) {
+-        unlock_state = STATE_STARTED;
+-    } else
+-        unlock_state = STATE_KEY_PRESSED;
++    unlock_state = STATE_STARTED;
+     redraw_screen();
+ }
+ 
+diff --git a/unlock_indicator.h b/unlock_indicator.h
+--- a/unlock_indicator.h
++++ b/unlock_indicator.h
+@@ -13,7 +13,7 @@
+                                    of the unlock indicator. */
+     STATE_BACKSPACE_ACTIVE = 3,  /* backspace was pressed recently, highlight
+                                    part of the unlock indicator in red. */
+-    STATE_NOTHING_TO_DELETE = 4, /* backspace was pressed, but there is nothing to delete. */
++    STATE_NOTHING_TO_DELETE = 4, /* the password buffer was cleared. */
+ } unlock_state_t;
+ 
+ typedef enum {
+@@ -26,7 +26,6 @@
+ 
+ typedef struct {
+     text_t status_text;
+-    text_t mod_text;
+     text_t keylayout_text;
+     text_t time_text;
+     text_t date_text;
+diff --git a/xcb.c b/xcb.c
+--- a/xcb.c
++++ b/xcb.c
+@@ -548,7 +548,7 @@
+ }
+ 
+ 
+-char* xcb_get_key_group_names(xcb_connection_t *conn) {
++char* xcb_get_key_group_names(xcb_connection_t *conn, int *group_count) {
+     uint8_t xkb_base_event;
+     uint8_t xkb_base_error;
+     if (xkb_x11_setup_xkb_extension(conn,
+@@ -615,5 +615,7 @@
+     }
+     free(reply);
+     free(error);
++    if (group_count)
++        *group_count = length;
+     return answer;
+ }
+diff --git a/xcb.h b/xcb.h
+--- a/xcb.h
++++ b/xcb.h
+@@ -32,6 +32,6 @@
+ xcb_window_t find_focused_window(xcb_connection_t *conn, const xcb_window_t root);
+ void set_focused_window(xcb_connection_t *conn, const xcb_window_t root, const xcb_window_t window);
+ xcb_pixmap_t capture_bg_pixmap(xcb_connection_t *conn, xcb_screen_t *scr, u_int32_t* resolution);
+-char* xcb_get_key_group_names(xcb_connection_t *conn);
++char* xcb_get_key_group_names(xcb_connection_t *conn, int *group_count);
+ 
+ #endif

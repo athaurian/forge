@@ -1,0 +1,63 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+_pkgname=i3lock-color
+pkgname=$_pkgname-patched
+pkgver=2.13.c.5
+pkgrel=1
+pkgdesc="i3lock-color with swaylock-effects-compatible status text, clock, Caps Lock, and vignette"
+arch=('x86_64')
+url="https://github.com/Raymo111/i3lock-color"
+license=('MIT')
+provides=('i3lock' 'i3lock-color')
+conflicts=('i3lock' 'i3lock-color' 'i3lock-color-git')
+replaces=('i3lock-color')
+depends=(
+  'xcb-util-image'
+  'pam'
+  'libev'
+  'cairo'
+  'libxkbcommon-x11'
+  'libjpeg-turbo'
+  'xcb-util-xrm'
+  'pkgconf'
+)
+makedepends=(
+  'autoconf'
+  'automake'
+)
+backup=('etc/pam.d/i3lock')
+source=(
+  "$url/archive/$pkgver.tar.gz"
+  'i3lock-color-status-text.patch'
+)
+sha256sums=(
+  '46f15cbbf339873266e014f70b5e1ec02177f0295302b615a7bd85bef40d8ad2'
+  '5e36d93f922d4f7a5ddcc1e71760636e817739adf83526f4ebadc35234254b9f'
+)
+
+prepare() {
+  cd "$srcdir/$_pkgname-$pkgver"
+  patch -Np1 -i "$srcdir/i3lock-color-status-text.patch"
+}
+
+build() {
+  cd "$srcdir/$_pkgname-$pkgver"
+
+  autoreconf -fi
+  ./configure \
+    --prefix=/usr \
+    --sysconfdir=/etc \
+    --enable-debug=no \
+    --disable-sanitizers
+  awk '!/all-configured/' Makefile >Makefile.new
+  mv Makefile.new Makefile
+  make
+}
+
+package() {
+  cd "$srcdir/$_pkgname-$pkgver"
+  make DESTDIR="$pkgdir" install
+  install -Dm644 i3lock-bash "$pkgdir/usr/share/bash-completion/completions/i3lock"
+  install -Dm644 i3lock-zsh "$pkgdir/usr/share/zsh/vendor-completions/_i3lock"
+  rm -f "$pkgdir/usr/share/bash-completion/completions/i3lock-bash"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
