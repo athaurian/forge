@@ -1,7 +1,7 @@
 # Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
 _pkgname=swayfx
 pkgname=$_pkgname-git
-pkgver=r7159.8bba119
+pkgver=r7163.98429c6
 pkgrel=3
 pkgdesc="Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)"
 arch=('x86_64')
@@ -72,14 +72,9 @@ build() {
   cd "$srcdir/$_pkgname"
 
   # Build scenefx from source (not packaged in official Arch repos).
-  mkdir -p subprojects
-  cp -a "$srcdir/scenefx" subprojects/scenefx
-  meson setup build-scenefx subprojects/scenefx --prefix=/usr -Ddefault_library=static
+  meson setup build-scenefx "$srcdir/scenefx" --prefix=/usr -Ddefault_library=static
   ninja -C build-scenefx
   DESTDIR="$PWD/install-scenefx" ninja -C build-scenefx install
-  # Remove scenefx source so meson's subproject() fallback doesn't activate
-  # during the swayfx build (it would pass unsupported options to scenefx).
-  rm -rf subprojects build-scenefx
 
   # Point the build at the locally built scenefx.
   export PKG_CONFIG_PATH="$PWD/install-scenefx/usr/lib/pkgconfig:$PKG_CONFIG_PATH"

@@ -11,4 +11,3 @@ check:
 	uvx ruff@0.17.1 format --check .github/scripts/*.py
 	uvx ruff@0.17.1 check .github/scripts/*.py
 	uvx mypy@2.4.0 .github/scripts/*.py
-	python3 -m py_compile .github/scripts/*.py

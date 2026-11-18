@@ -63,6 +63,3 @@ runs:
             echo "::warning::GPG signing key expires in ${DAYS} days (on $(date -u -d "@$EXPIRY" '+%Y-%m-%d'))"
           fi
         fi
-
-        rm -f "$KEY_FILE" "$PASS_FILE"
-        trap - EXIT

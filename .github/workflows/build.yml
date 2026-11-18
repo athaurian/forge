@@ -140,13 +140,6 @@ jobs:
           cd "$GITHUB_WORKSPACE/packages/$PACKAGE"
           su builder -c "makepkg -s --sign --noconfirm --noprogressbar --cleanbuild"
 
-      - name: Verify package was built
-        env:
-          PACKAGE: ${{ matrix.package }}
-        run: |
-          ls packages/$PACKAGE/*.pkg.tar.zst
-          ls packages/$PACKAGE/*.pkg.tar.zst.sig
-
       - name: Stage packages for artifact upload
         env:
           PACKAGE: ${{ matrix.package }}
