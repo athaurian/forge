@@ -40,18 +40,19 @@ To see everything that's published, run `pacman -Sl forge`.
 
 ## Packages
 
-| Package                       | Description                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `calpdf-git`                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git) |
-| `exercism-bin`                | Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)            |
-| `i3lock-color-patched`        | i3lock-color with status text, Caps Lock, clock, vignette, and timings matched to swaylock-effects                 |
-| `lutgen-cli-git`              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                   |
-| `orchis-theme-4px`            | Orchis GTK theme built with 4px rounded corners                                                                    |
-| `otf-geist-mono-nerd-trimmed` | Geist Mono Nerd Font Mono, trimmed to the four styles the desktop uses                                             |
-| `polybar-pinned`              | Fast and easy-to-use status bar with the right modules pinned to the bar edge                                      |
-| `swayfx-git`                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                          |
-| `wayfreeze-git`               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                      |
-| `xdg-terminal-exec-git`       | Open the user's preferred terminal emulator from apps and scripts (git)                                            |
+| Package                       | Description                                                                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `calpdf-git`                  | PDF toolkit to run alongside Calibre: download and swap covers, shrink PDFs, and export or rewrite bookmarks (git)                           |
+| `exercism-bin`                | Download exercises from exercism.org, work on them locally, and submit your solutions (prebuilt binary)                                      |
+| `i3lock-color-patched`        | i3lock-color with status text, Caps Lock, clock, vignette, and timings matched to swaylock-effects                                           |
+| `lumi-bin`                    | Desktop companion for Fasilkom UI students that tracks SCELE deadlines, SLCM classes, rain alerts, lyrics, and study rooms (prebuilt binary) |
+| `lutgen-cli-git`              | Recolor images to match a color theme such as Catppuccin, Gruvbox, or Nord (git)                                                             |
+| `orchis-theme-4px`            | Orchis GTK theme built with 4px rounded corners                                                                                              |
+| `otf-geist-mono-nerd-trimmed` | Geist Mono Nerd Font Mono, trimmed to the four styles the desktop uses                                                                       |
+| `polybar-pinned`              | Fast and easy-to-use status bar with the right modules pinned to the bar edge                                                                |
+| `swayfx-git`                  | Sway compositor with shadows, blur, and rounded corners, built against wlroots 0.20 (git)                                                    |
+| `wayfreeze-git`               | Freeze the screen to draw a selection and take a screenshot without movement underneath (git)                                                |
+| `xdg-terminal-exec-git`       | Open the user's preferred terminal emulator from apps and scripts (git)                                                                      |
 
 ## Patches
 

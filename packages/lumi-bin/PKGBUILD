@@ -1,0 +1,37 @@
+# Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
+pkgname=lumi-bin
+pkgver=1.0.3
+pkgrel=1
+pkgdesc="Desktop companion for Fasilkom UI students that tracks SCELE deadlines, SLCM classes, rain alerts, lyrics, and study rooms (prebuilt binary)"
+arch=('x86_64')
+url="https://www.seelumi.dev/"
+license=('custom')
+depends=('gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
+provides=("lumi=$pkgver")
+conflicts=('lumi')
+source=("Lumi_${pkgver}_amd64.deb::https://mirror.seelumi.dev/api/update/Lumi_${pkgver}_amd64.deb")
+sha256sums=('ea20eacbe5972b18a277c876e3337be89b4200482f258e451d2baee6e3cde2e3')
+noextract=("Lumi_${pkgver}_amd64.deb")
+
+prepare() {
+  cd "$srcdir"
+  # Upstream publishes only a .deb. Unpack it instead of shipping a 155 MB
+  # AppImage that carries its own copies of GTK and WebKit.
+  ar x "Lumi_${pkgver}_amd64.deb"
+  tar xf data.tar.gz
+}
+
+package() {
+  cd "$srcdir"
+
+  install -Dm755 usr/bin/lumi "$pkgdir/usr/bin/lumi"
+  install -Dm644 usr/share/applications/Lumi.desktop \
+    "$pkgdir/usr/share/applications/lumi.desktop"
+
+  for size in 32x32 128x128 256x256@2; do
+    install -Dm644 "usr/share/icons/hicolor/$size/apps/lumi.png" \
+      "$pkgdir/usr/share/icons/hicolor/$size/apps/lumi.png"
+  done
+
+  install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
