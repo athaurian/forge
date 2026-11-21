@@ -1,12 +1,14 @@
 # Maintainer: Hanif Ilham Athaurrahman <319663671+athaurian@users.noreply.github.com>
 pkgname=lumi-bin
 pkgver=1.0.3
-pkgrel=1
+pkgrel=2
 pkgdesc="Desktop companion for Fasilkom UI students that tracks SCELE deadlines, SLCM classes, rain alerts, lyrics, and study rooms (prebuilt binary)"
 arch=('x86_64')
 url="https://www.seelumi.dev/"
 license=('custom')
-depends=('gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator')
+# gst-plugins-good supplies autoaudiosink. Without it, WebKitWebProcess aborts
+# on launch and the window stays blank.
+depends=('gtk3' 'webkit2gtk-4.1' 'libayatana-appindicator' 'gst-plugins-good')
 provides=("lumi=$pkgver")
 conflicts=('lumi')
 source=("Lumi_${pkgver}_amd64.deb::https://mirror.seelumi.dev/api/update/Lumi_${pkgver}_amd64.deb")
